@@ -2,19 +2,19 @@ import streamlit as st
 import joblib
 import pandas as pd
 import numpy as np
-import requests
 import os
 
+# 1. Load the model and columns (Streamlit Cloud uses these files from your GitHub)
 base_path = os.path.dirname(__file__)
 model = joblib.load(os.path.join(base_path, 'credit_risk_model.pkl'))
 model_columns = joblib.load(os.path.join(base_path, 'model_columns.pkl'))
 
-st.set_page_config(page_title="Credit Risk Ai", layout="centered")
+st.set_page_config(page_title="Credit Risk AI", layout="centered")
 
-# Set page title
 st.title("🏦 AI Loan Officer")
 st.markdown("---")
 
+# 2. Input Fields
 col1, col2 = st.columns(2)
 
 with col1:
@@ -27,13 +27,13 @@ with col2:
     int_rate = st.number_input("Interest Rate (%)", value=11.0)
     age = st.number_input("Applicant Age", value=25, min_value=18)
 
-# Calculate the features the model needs
-loan_percent_income = loan_amount / income
-import numpy as np
-log_income = np.log1p(income)
-
+# 3. Prediction Logic
 if st.button("Analyze Risk", use_container_width=True):
-    # Data to send to your FastAPI (main.py)
+    # Prepare the features
+    loan_percent_income = loan_amount / income
+    log_income = np.log1p(income)
+    
+    # Create the DataFrame the model expects
     payload = {
         "person_age": age,
         "person_emp_length": float(emp_length),
@@ -44,28 +44,17 @@ if st.button("Analyze Risk", use_container_width=True):
         "loan_percent_income": loan_percent_income
     }
     
-    try:
-        # Link to your FastAPI running on port 8000
-        response = requests.post("http://127.0.0.1:8000/predict", json=payload)
-        result = response.json()
-        
-        prob = result['probability_of_default']
-        status = result['status']
-        
-        st.markdown("### Result:")
-        if status == "APPROVED":
-            st.success(f"✅ **APPROVED** (Risk Score: {prob:.2%})")
-        else:
-            st.error(f"❌ **REJECTED** (Risk Score: {prob:.2%})")
-            
-    except Exception as e:
-        st.warning("Ensure your FastAPI server (main.py) is running on port 8000!")
-
-
-if st.button("Analyze Risk"):
-    # Create the DataFrame directly here
-    input_df = pd.DataFrame([payload]) # Using the payload dictionary you made
+    input_df = pd.DataFrame([payload])
     input_df = input_df.reindex(columns=model_columns, fill_value=0)
     
+    # Run prediction directly from the loaded .pkl file
     prob = model.predict_proba(input_df)[:, 1][0]
-    # (Show your Approved/Rejected messages here)
+    
+    st.markdown("### Result:")
+    # Using 0.31 as the threshold (adjust based on your best model performance)
+    if prob > 0.31:
+        st.error(f"❌ **REJECTED** (Risk Score: {prob:.2%})")
+        st.write("This applicant has a high probability of defaulting on the loan.")
+    else:
+        st.success(f"✅ **APPROVED** (Risk Score: {prob:.2%})")
+        st.write("This applicant meets the credit safety requirements.")
