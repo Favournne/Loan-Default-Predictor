@@ -69,7 +69,9 @@ if st.button("Evaluate Credit Application", type="primary"):
     }
     
     # Target path for your local running Uvicorn server application
-    backend_url = "http://127.0.0.1:8000/predict"
+    #backend_url = "http://127.0.0.1:8000/predict"
+    # Target path for your LIVE running Render server application
+    backend_url = "https://loan-default-predictor-xg9j.onrender.com/predict"
     
     with st.spinner("Querying production underwriting ledger..."):
         try:
